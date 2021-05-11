@@ -2,7 +2,7 @@ const database = require('../../db')
 const User = require('../../models/user')
 const UserDTO = require('../../models/userDTO')
 const ErrorMessage = require('../../models/error_message')
-
+const bcrypt = require('bcrypt')
 
 
 exports.saveUser = async function(userDto) {
@@ -21,12 +21,10 @@ exports.getUser = async function(emailOrPhone, password, isEmail) {
     if(isEmail){
         query = {
             email:emailOrPhone,
-            password:password
         }
     } else {
         query = {
             phone:emailOrPhone,
-            password:password
         }
     }
     
@@ -39,7 +37,13 @@ exports.getUser = async function(emailOrPhone, password, isEmail) {
     if(result==null){
         return new ErrorMessage('ERROR_USER_GETTING','User with specific credentials does not exists in database')
     } else {
-        return takeUserFromResult(result,false)  
+        passwordsAreTheSame = await decryptPassword(result,password)
+        if(passwordsAreTheSame) {
+            return takeUserFromResult(result,false)  
+        } else {
+            return new ErrorMessage('ERROR_WRONG_CREDENTIALS','Wrong email or password')
+        }
+        
     }
     
 }
@@ -50,4 +54,8 @@ function takeUserFromResult(result,empty) {
         return new User(result['_id'],result['email'],result['phone'],result['name'],result['hasOwnImage'],result['gender'],result['contactUids'])
     }
     
+}
+
+async function decryptPassword(result,password) {
+    return await bcrypt.compare(password,result['password'])
 }

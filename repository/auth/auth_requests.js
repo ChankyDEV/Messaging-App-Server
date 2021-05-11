@@ -1,13 +1,13 @@
 const database = require('../../db')
 const User = require('../../models/user')
-const UserDTO = require('../../models/userDTO')
 const ErrorMessage = require('../../models/error_message')
-const bcrypt = require('bcrypt')
-
+const encoding = require('./encryption')
 
 exports.saveUser = async function(userDto) {
     const db = await database.client
     try {
+        
+        userDto['password'] = await encoding.encryptPassword(password,10)
         let result = (await db.collection('users').insertOne(userDto)).ops[0]
         return takeUserFromResult(result,true)
     } catch (err) {
@@ -37,15 +37,13 @@ exports.getUser = async function(emailOrPhone, password, isEmail) {
     if(result==null){
         return new ErrorMessage('ERROR_USER_GETTING','User with specific credentials does not exists in database')
     } else {
-        passwordsAreTheSame = await decryptPassword(result,password)
+        passwordsAreTheSame = await encoding.decryptPassword(result,password)
         if(passwordsAreTheSame) {
             return takeUserFromResult(result,false)  
         } else {
             return new ErrorMessage('ERROR_WRONG_CREDENTIALS','Wrong email or password')
         }
-        
     }
-    
 }
 function takeUserFromResult(result,empty) {
     if(empty==true) {
@@ -58,4 +56,7 @@ function takeUserFromResult(result,empty) {
 
 async function decryptPassword(result,password) {
     return await bcrypt.compare(password,result['password'])
+}
+async function encryptPassword(password,salt) {
+        return await bcrypt.hash(password,salt)
 }

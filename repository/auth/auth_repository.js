@@ -1,7 +1,6 @@
 const helpers = require('./auth_helpers')
 const requests = require('./auth_requests')
 const ErrorMessage = require('../../models/error_message')
-const bcrypt = require('bcrypt')
 
 
 exports.signUp = async function(userDto){
@@ -12,7 +11,7 @@ exports.signUp = async function(userDto){
     if(helpers.registerInputsAreWrong(email,phone,password)) {
         return new ErrorMessage('ERROR_DATA_UNDEFINED','Some data has invalid value')
     } else {       
-        userDto['password'] = await encryptPassword(password,10)
+        
         canSignUpUser = await helpers.userIsNotInDatabase(email,phone)
         if(canSignUpUser) {          
             return await requests.saveUser(userDto)
@@ -49,12 +48,5 @@ async function signIn(phoneOrEmail,password,isEmail)  {
     }
 }
 
-async function encryptPassword(password,salt) {
-    try {
-        return await bcrypt.hash(password,salt)
-    }
-    catch {
-        return password
-    }
-   
-}
+
+
